@@ -1,4 +1,4 @@
-%% Compare three relative tolerances for A_3 and the two input matrices
+%% Compare four stopping tolerances for A_3 and the two input matrices
 % This script reads the adjacent results.mat and recreates both figures.
 % sigmaCurveI and sigmaCurveOnes contain sigma, with one column per relTol.
 
@@ -27,11 +27,14 @@ function [fig, ax] = plot_comparison(tauValues, sigmaCurves, relTols, xTickStep)
     positiveValues = sigmaSquared(isfinite(sigmaSquared));
     assert(~isempty(positiveValues), 'No positive boundary values to plot.');
 
-    colors = [0.0000 0.4470 0.7410; ...
+    % Add epsilon=1e-3 in green; retain the original three curve styles.
+    colors = [0.4660 0.6740 0.1880; ...
+              0.0000 0.4470 0.7410; ...
               0.8500 0.3250 0.0980; ...
               0.4940 0.1840 0.5560];
-    lineStyles = {'-', '--', ':'};
-    markers = {'o', 's', '^'};
+    lineStyles = {'-.', '-', '--', ':'};
+    markers = {'d', 'o', 's', '^'};
+    markerOffsets = [4, 1, 2, 3];
 
     fig = figure('Color', 'w', 'Units', 'pixels', ...
         'Position', [100 100 968 660]);
@@ -41,9 +44,9 @@ function [fig, ax] = plot_comparison(tauValues, sigmaCurves, relTols, xTickStep)
         % Stagger marker locations to distinguish coincident curves.
         set(handles(k), 'Color', colors(k, :), ...
             'LineStyle', lineStyles{k}, 'Marker', markers{k}, ...
-            'MarkerIndices', k:3:numel(tauValues), 'MarkerSize', 6.5, ...
+            'MarkerIndices', markerOffsets(k):numel(relTols):numel(tauValues), 'MarkerSize', 6.5, ...
             'MarkerFaceColor', colors(k, :), 'MarkerEdgeColor', colors(k, :), ...
-            'DisplayName', sprintf('relTol = 10^{%d}', round(log10(relTols(k)))));
+            'DisplayName', ['\epsilon = 10^{' num2str(round(log10(relTols(k)))) '}']);
     end
 
     firstExponent = floor(log10(min(positiveValues)));
