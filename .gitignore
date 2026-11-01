@@ -1,0 +1,6 @@
+# macOS metadata
+.DS_Store
+
+# MATLAB editor backups
+*.asv
+*.m~
