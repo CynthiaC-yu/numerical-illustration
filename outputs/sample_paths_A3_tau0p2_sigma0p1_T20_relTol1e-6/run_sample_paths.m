@@ -23,7 +23,7 @@ end
 solverCfg.Ns = 201;
 solverCfg.maxIter = 2e5;
 solverCfg.maxWNorm = 1e12;
-solverCfg.relTol = 1e-4;
+solverCfg.relTol = 1e-6;
 solverCfg.progressInterval = 5;
 % Retained from main.m; inactive for these positive-tau cases.
 solverCfg.odeSolver = 'ode15s';

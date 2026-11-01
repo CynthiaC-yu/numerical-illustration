@@ -14,7 +14,7 @@ The script adds `dependencies/` to the path, starts or reuses a process pool, co
 
 To run only the sample paths, execute Sections 0–5, followed by Sections 9–10. The models, solver results, simulation settings, and trajectory data remain in `pathModels`, `pathProbes`, `pathCfg`, and `pathResults`.
 
-A saved sample-path experiment with `relTol = 1e-4` is available in [`outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-4/`](outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-4/). Run its `run_sample_paths.m` to reproduce and save both sample-path figures without running the boundary scans. The script locates the project from its own folder.
+A saved sample-path experiment with `relTol = 1e-6` is available in [`outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/`](outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/). Run its `run_sample_paths.m` to reproduce and save both sample-path figures without running the boundary scans. The script locates the project from its own folder.
 
 ## Boundary experiment
 
@@ -64,7 +64,7 @@ Both cases use `A = A_3`, `L = eye(5)`, `P = zeros(5)`, `tau = 0.2`, and `sigma 
 | Setting | Value |
 | --- | --- |
 | Initial state | `x0 = ones(5,1)/sqrt(5)` |
-| Riccati solver | `riccati.m`, with the settings above |
+| Riccati solver | `riccati.m`; `relTol = 1e-5` in `main.m`, `1e-6` in the saved example |
 | Time integration | Euler–Maruyama, `dt = 0.001` |
 | Simulation length | 100 sampling intervals; `T = 20` |
 | Monte Carlo paths | 10000; 10 individual paths shown |
