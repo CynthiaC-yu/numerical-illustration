@@ -63,9 +63,9 @@ function [sigmaCurve, curveBoundary, curveSeconds] = ...
                 pointBoundary, modelJob, savedSolverCfg, searchCfg, aIndex, tauIndex);
         end
         curveBoundary{jobIndex} = pointBoundary;
-        sigmaCurve(jobIndex) = pointBoundary.sigmaLow;
+        sigmaCurve(jobIndex) = sqrt(pointBoundary.sigmaSquareLow);
         send(progressQueue, struct('event', 'finished', 'jobIndex', jobIndex, ...
-            'sigmaSquared', pointBoundary.sigmaLow^2));
+            'sigmaSquared', pointBoundary.sigmaSquareLow));
     end
 
     drawnow;

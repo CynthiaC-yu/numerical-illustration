@@ -35,7 +35,7 @@ tauSet = cell(2, 1);
 tauSet{1} = (0:0.2:10).';
 tauSet{2} = (0:0.2:6).';
 
-% Bisect sigma; measure the relative bracket width in sigma^2.
+% Bisect sigma^2 in [0,4]; measure its relative bracket width.
 searchCfg.sigmaSquaredRelTol = 0.02;
 % Number of trapezoidal quadrature nodes for positive tau.
 solverCfg.Ns = 201;
@@ -99,10 +99,11 @@ outputDir = fullfile(projectDir, 'outputs', ...
     sprintf('%s_relative_tol_%g', runStamp, solverCfg.relTol));
 mkdir(outputDir);
 
+searchVariable = 'sigmaSquared';
 convergenceCriterion = "norm(Wnew-Wold,'fro') <= relTol*norm(Wold,'fro')";
 save(fullfile(outputDir, 'results.mat'), ...
     'Aset', 'Bset', 'Rset', 'L', 'tauSet', 'solverCfg', 'searchCfg', ...
-    'convergenceCriterion', 'sigmaCurveI', 'curveBoundaryI', 'curveSecondsI', ...
+    'searchVariable', 'convergenceCriterion', 'sigmaCurveI', 'curveBoundaryI', 'curveSecondsI', ...
     'sigmaCurve', 'curveBoundary', 'curveSeconds');
 
 savefig(figI, fullfile(outputDir, 'B_I5.fig'));

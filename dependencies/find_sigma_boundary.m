@@ -1,43 +1,43 @@
 function boundary = find_sigma_boundary(model, solverCfg, searchCfg)
 
-    sigmaLow = 0;
+    sigmaSquareLow = 0;
     modelSearch = model;
-    modelSearch.sigma = sigmaLow;
+    modelSearch.sigma = sqrt(sigmaSquareLow);
     lowProbe = riccati(modelSearch, solverCfg);
 
-    sigmaHigh = 2;
-    modelSearch.sigma = sigmaHigh;
+    sigmaSquareHigh = 4;
+    modelSearch.sigma = sqrt(sigmaSquareHigh);
     highProbe = riccati(modelSearch, solverCfg);
 
     hasBracket = lowProbe.converged && ~highProbe.converged;
 
     if hasBracket
 
-        % Binary search loop for one fixed (A, B, tau)
-        while sigmaHigh^2 - sigmaLow^2 > ...
-        searchCfg.sigmaSquaredRelTol * max(sigmaHigh^2, 1e-12)
-            sigmaMid = (sigmaLow + sigmaHigh) / 2;
-            modelSearch.sigma = sigmaMid;
+        % Bisect the noise variance sigma^2 for one fixed (A, B, tau).
+        while sigmaSquareHigh - sigmaSquareLow > ...
+        searchCfg.sigmaSquaredRelTol * max(sigmaSquareHigh, 1e-12)
+            sigmaSquareMid = (sigmaSquareLow + sigmaSquareHigh) / 2;
+            modelSearch.sigma = sqrt(sigmaSquareMid);
 
             midProbe = riccati(modelSearch, solverCfg);
 
             if midProbe.converged
-                sigmaLow = sigmaMid;
+                sigmaSquareLow = sigmaSquareMid;
                 lowProbe = midProbe;
             else
-                sigmaHigh = sigmaMid;
+                sigmaSquareHigh = sigmaSquareMid;
                 highProbe = midProbe;
             end
         end
 
 
     else
-        sigmaLow = NaN;
-        sigmaHigh = NaN;
+        sigmaSquareLow = NaN;
+        sigmaSquareHigh = NaN;
     end
     boundary.tau = modelSearch.tau;
-    boundary.sigmaLow = sigmaLow;
-    boundary.sigmaHigh = sigmaHigh;
+    boundary.sigmaSquareLow = sigmaSquareLow;
+    boundary.sigmaSquareHigh = sigmaSquareHigh;
     boundary.lowProbe = lowProbe;
     boundary.highProbe = highProbe;
 end

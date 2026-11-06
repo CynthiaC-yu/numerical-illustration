@@ -30,8 +30,8 @@ function [fig, ax] = plot_sigma_curves( ...
     markerIndices = unique(markerIndices);
 
     fig = figure('Color', 'w', 'Units', 'pixels', ...
-        'Position', [100 100 968 660]);
-    ax = axes('Parent', fig, 'Position', [0.198 0.127 0.733 0.720]);
+        'Position', [100 100 968 500]);
+    ax = axes('Parent', fig, 'Position', [0.198 0.180 0.733 0.720]);
 
     lineHandles = semilogy(ax, tauValues, sigmaSquaredForPlot, ...
         '-', 'LineWidth', 1.4);

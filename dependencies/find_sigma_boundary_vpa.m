@@ -4,14 +4,14 @@ function boundary = find_sigma_boundary_vpa(model, solverCfg, searchCfg)
     nBisections = 0;
     showProgress = ~isfield(solverCfg, 'progressQueue');
 
-    sigmaLow = 0;
+    sigmaSquareLow = 0;
     modelSearch = model;
-    modelSearch.sigma = sigmaLow;
+    modelSearch.sigma = sqrt(sigmaSquareLow);
     probeIndex = probeIndex + 1;
     lowProbe = run_sigma_probe(modelSearch, solverCfg, probeIndex);
 
-    sigmaHigh = 2;
-    modelSearch.sigma = sigmaHigh;
+    sigmaSquareHigh = 4;
+    modelSearch.sigma = sqrt(sigmaSquareHigh);
     probeIndex = probeIndex + 1;
     highProbe = run_sigma_probe(modelSearch, solverCfg, probeIndex);
 
@@ -19,45 +19,45 @@ function boundary = find_sigma_boundary_vpa(model, solverCfg, searchCfg)
 
     if hasBracket
 
-        % Binary search loop for one fixed (A, B, tau)
-        while sigmaHigh^2 - sigmaLow^2 > ...
-        searchCfg.sigmaSquaredRelTol * max(sigmaHigh^2, 1e-12)
+        % Bisect the noise variance sigma^2 for one fixed (A, B, tau).
+        while sigmaSquareHigh - sigmaSquareLow > ...
+        searchCfg.sigmaSquaredRelTol * max(sigmaSquareHigh, 1e-12)
             nBisections = nBisections + 1;
             if showProgress
-                relativeWidth = (sigmaHigh^2 - sigmaLow^2) / max(sigmaHigh^2, 1e-12);
+                relativeWidth = (sigmaSquareHigh - sigmaSquareLow) / max(sigmaSquareHigh, 1e-12);
                 fprintf(['Bisection %d | sigma^2 bracket [%.6g, %.6g]' ...
                     ' | relative width %.2f%% (target %.2f%%)\n'], ...
-                    nBisections, sigmaLow^2, sigmaHigh^2, ...
+                    nBisections, sigmaSquareLow, sigmaSquareHigh, ...
                     100 * relativeWidth, 100 * searchCfg.sigmaSquaredRelTol);
             end
-            sigmaMid = (sigmaLow + sigmaHigh) / 2;
-            modelSearch.sigma = sigmaMid;
+            sigmaSquareMid = (sigmaSquareLow + sigmaSquareHigh) / 2;
+            modelSearch.sigma = sqrt(sigmaSquareMid);
 
             probeIndex = probeIndex + 1;
             midProbe = run_sigma_probe(modelSearch, solverCfg, probeIndex);
 
             if midProbe.converged
-                sigmaLow = sigmaMid;
+                sigmaSquareLow = sigmaSquareMid;
                 lowProbe = midProbe;
             else
-                sigmaHigh = sigmaMid;
+                sigmaSquareHigh = sigmaSquareMid;
                 highProbe = midProbe;
             end
         end
 
 
     else
-        sigmaLow = NaN;
-        sigmaHigh = NaN;
+        sigmaSquareLow = NaN;
+        sigmaSquareHigh = NaN;
     end
     boundary.tau = modelSearch.tau;
-    boundary.sigmaLow = sigmaLow;
-    boundary.sigmaHigh = sigmaHigh;
+    boundary.sigmaSquareLow = sigmaSquareLow;
+    boundary.sigmaSquareHigh = sigmaSquareHigh;
     boundary.lowProbe = lowProbe;
     boundary.highProbe = highProbe;
     if showProgress
         if hasBracket
-            relativeWidth = (sigmaHigh^2 - sigmaLow^2) / max(sigmaHigh^2, 1e-12);
+            relativeWidth = (sigmaSquareHigh - sigmaSquareLow) / max(sigmaSquareHigh, 1e-12);
             fprintf(['Boundary search finished: %d probes, %d bisections' ...
                 ' | relative width %.2f%%\n'], ...
                 probeIndex, nBisections, 100 * relativeWidth);

@@ -4,17 +4,33 @@ This repository provides numerical illustrations for *Feedback Stabilization for
 
 ## Run
 
-The main workflow uses MATLAB and Parallel Computing Toolbox. It has been run with MATLAB R2025a. Open the project folder in MATLAB and run:
+The code has been run with MATLAB R2025a. Run the commands below from the project folder.
+
+| Task | Entry point | Requirements |
+| --- | --- | --- |
+| Main boundary experiment and sample-path figures | `main.m` | MATLAB and Parallel Computing Toolbox |
+| Four-tolerance comparison for all five matrices | `outputs/A1_A5_relTol_comparison/run_A1_A5_relTol_comparison.m` | MATLAB and Parallel Computing Toolbox |
+| Redraw the saved comparison | `outputs/A1_A5_relTol_comparison/plot_A1_A5_relTol_comparison.m` | MATLAB |
+| Reproduce and save the T=20 sample paths | `outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/run_sample_paths.m` | MATLAB |
+| Optional high-precision boundary experiment | `main_vpa.m` | MATLAB, Parallel Computing Toolbox, and Symbolic Math Toolbox |
+
+To run the main experiment:
 
 ```matlab
 main
 ```
 
-The script adds `dependencies/` to the path, starts or reuses a process pool, computes both boundary plots, and saves their data and figures. Sections 9–10 then generate the two sample-path figures.
+The script adds `dependencies/` to the path, starts or reuses a process pool, and computes 410 boundary searches: 255 for `B = I_5` and 155 for `B = ones(5,1)`. It saves both boundary plots and their data in a new output folder. Sections 9–10 then generate the two sample-path figures and leave their results in the MATLAB workspace.
 
 To run only the sample paths, execute Sections 0–5, followed by Sections 9–10. The models, solver results, simulation settings, and trajectory data remain in `pathModels`, `pathProbes`, `pathCfg`, and `pathResults`.
 
-A saved sample-path experiment with `relTol = 1e-6` is available in [`outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/`](outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/). Run its `run_sample_paths.m` to reproduce and save both sample-path figures without running the boundary scans. The script locates the project from its own folder.
+A saved sample-path experiment with `relTol = 1e-6` is available in [`outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/`](outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/). To reproduce and save both sample-path figures directly:
+
+```matlab
+run(fullfile('outputs', 'sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6', 'run_sample_paths.m'));
+```
+
+The standalone script locates the project from its own folder and replaces the results and figures saved beside it.
 
 ## Boundary experiment
 
@@ -24,7 +40,7 @@ For `i = 1,...,5`,
 A_i = ((i-1)/5) * eye(5) + diag((0:4)/10);
 ```
 
-The following settings are used by the current `main.m`:
+The following settings are used by `main.m` and the saved main boundary experiment:
 
 | Setting | Value |
 | --- | --- |
@@ -36,7 +52,7 @@ The following settings are used by the current `main.m`:
 | Fixed-point tolerance | `relTol = 1e-5` |
 | Maximum sampled-map updates | `maxIter = 2e5` |
 | Frobenius norm limit | `maxWNorm = 1e12` |
-| Boundary search | Bisection in `sigma`, initially in `[0,2]` |
+| Boundary search | Bisection in `sigma^2`, initially in `[0,4]` |
 | Search precision | 2% relative bracket width in `sigma^2` |
 | Continuous solver at `tau = 0` | `ode15s`, maximum time `5000`, `RelTol = 1e-9`, `AbsTol = 1e-11` |
 
@@ -51,42 +67,61 @@ The accepted `Wnew` is returned. At `tau = 0`, the solver instead checks a scale
 The bisection stops when
 
 ```matlab
-sigmaHigh^2 - sigmaLow^2 <= ...
-    searchCfg.sigmaSquaredRelTol * max(sigmaHigh^2, 1e-12)
+sigmaSquareHigh - sigmaSquareLow <= ...
+    searchCfg.sigmaSquaredRelTol * max(sigmaSquareHigh, 1e-12)
 ```
 
-The curve uses `sigmaLow`, the tested convergent endpoint. A failed convergence check is a numerical outcome under the stated tolerances and limits.
+The search retains a lower endpoint that passes the convergence check and an upper endpoint that fails it. It reports the lower variance endpoint as the observed `sigma_max^2`. The returned fields `sigmaSquareLow` and `sigmaSquareHigh` are both in variance units. Each midpoint solve receives `model.sigma = sqrt(sigmaSquareMid)`.
 
-## Stopping-tolerance comparison for A_3
+The scan stores `sqrt(sigmaSquareLow)` in `sigmaCurve`; the plotting function squares these values. A failed convergence check is a numerical outcome under the stated tolerances and limits. If the initial endpoints do not form a valid bracket, the search returns `NaN` endpoints.
 
-[`outputs/A3_relTol_comparison/`](outputs/A3_relTol_comparison/) contains the comparison for `A = A_3` and both input cases. The legend uses `epsilon` for `solverCfg.relTol`, with values `1e-3`, `1e-4`, `1e-5`, and `1e-6`. For positive `tau`, all four runs use the relative update criterion above. The model, sampling grids, quadrature, search precision, and solver limits are otherwise the same.
+The saved main boundary experiment uses the `epsilon = 1e-5` slice of the same completed rerun as the four-tolerance comparison below.
 
-To rerun all 328 boundary searches and save the results and both figures:
+## Stopping-tolerance comparison for all five matrices
+
+[`outputs/A1_A5_relTol_comparison/`](outputs/A1_A5_relTol_comparison/) contains both input cases for `A_1` through `A_5` at `epsilon = 1e-3, 1e-4, 1e-5, 1e-6`, where `epsilon` denotes `solverCfg.relTol`. All four settings use the relative update criterion above for positive `tau`. The model, sampling grids, quadrature, search precision, and solver limits are otherwise the same.
+
+Each figure has five colors for the matrices and four line styles for the tolerances. The two groups have separate legend boxes. Diamonds, circles, squares, and triangles identify the four tolerances in the order listed above. Their markers are staggered along the common sampling grid to distinguish nearly overlapping curves.
+
+The comparison run script reads the model and settings from its adjacent `results.mat`, reruns all 1,640 boundary searches, and replaces that file and both figures:
 
 ```matlab
-addpath(fullfile('outputs', 'A3_relTol_comparison'), '-begin');
-comparison = run_A3_relTol_comparison;
+addpath(fullfile('outputs', 'A1_A5_relTol_comparison'), '-begin');
+comparison = run_A1_A5_relTol_comparison;
 ```
 
-To redraw the figures from the saved data:
+To redraw both figures from the saved comparison:
 
 ```matlab
-run(fullfile('outputs', 'A3_relTol_comparison', 'plot_A3_relTol_comparison.m'));
+run(fullfile('outputs', 'A1_A5_relTol_comparison', 'plot_A1_A5_relTol_comparison.m'));
 ```
 
-Both entries use the adjacent `results.mat`. Diamonds, circles, squares, and triangles identify the four tolerances in the order listed above. Within each figure, all four curves use the same `tau` grid; their markers are staggered to distinguish nearly overlapping lines.
+The MAT file stores the settings, boundary diagnostics, and curve arrays in the order `(tau, A_i, epsilon)`. The dimensions are `51-by-5-by-4` for `cases(1)`, corresponding to `B = I_5`, and `31-by-5-by-4` for `cases(2)`, corresponding to `B = ones(5,1)`. The tolerance order is `[1e-3, 1e-4, 1e-5, 1e-6]`.
 
-The table lists all 7 of the 82 sampled `(B, tau)` pairs where the results differ. Values of `sigma_max^2` are displayed to three significant figures. Maximum relative differences are computed from unrounded values against the `epsilon = 1e-6` result. All other sampled pairs give identical values.
+In each case, `sigmaSquared` stores the lower variance endpoints directly and `sigmaCurve` stores their square roots.
 
-| B | tau | epsilon=1e-3 | epsilon=1e-4 | epsilon=1e-5 | epsilon=1e-6 | Max. relative difference |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `I_5` | 0.400 | 0.446 | 0.446 | 0.446 | 0.441 | 1.18% |
-| `I_5` | 2.60 | 0.0413 | 0.0405 | 0.0405 | 0.0405 | 1.95% |
-| `I_5` | 4.80 | 0.00222 | 0.00220 | 0.00220 | 0.00220 | 1.04% |
-| `I_5` | 8.00 | 2.21e-5 | 2.21e-5 | 2.18e-5 | 2.18e-5 | 1.31% |
-| `ones(5,1)` | 3.80 | 2.66e-5 | 2.63e-5 | 2.63e-5 | 2.63e-5 | 1.19% |
-| `ones(5,1)` | 4.60 | 7.97e-6 | 7.97e-6 | 7.88e-6 | 7.88e-6 | 1.09% |
-| `ones(5,1)` | 5.80 | 8.66e-7 | 8.52e-7 | 8.52e-7 | 8.52e-7 | 1.66% |
+The estimates differ at 58 of 410 sampled `(A_i, B, tau)` combinations. The four estimates agree exactly at the remaining 352 combinations. The largest observed relative difference is 2.04%, using `epsilon = 1e-6` as the reference and unrounded values for the calculation.
+
+| Input case | Sampled combinations | Combinations with different estimates | Maximum relative difference |
+| --- | ---: | ---: | ---: |
+| `B = I_5` | 255 | 34 | 2.04% |
+| `B = ones(5,1)` | 155 | 24 | 1.89% |
+
+For each sampled combination, let `v` be its four variance estimates. The reported difference is
+
+```matlab
+100 * max(abs(v - v(end))) / v(end)
+```
+
+The 2% search-width tolerance uses the upper bracket endpoint as its denominator. The comparison uses the `epsilon = 1e-6` estimate as its denominator.
+
+Each case stores a `changedRows` table with one row per combination where the estimates differ, including the four estimates and the maximum relative difference as a percentage:
+
+```matlab
+comparison = load(fullfile('outputs', 'A1_A5_relTol_comparison', 'results.mat'));
+comparison.cases(1).changedRows
+comparison.cases(2).changedRows
+```
 
 ## Sample paths
 
@@ -103,11 +138,9 @@ Both cases use `A = A_3`, `L = eye(5)`, `P = zeros(5)`, `tau = 0.2`, and `sigma 
 
 The feedback is `u(k*tau+s) = K(s)*x(k*tau)`. Each path uses one scalar Wiener process. The figures show individual squared state norms, their Monte Carlo mean, and the mean at sampling instants on a logarithmic vertical axis.
 
-An additional [`B = ones(5,1)`, `T = 100` figure](outputs/sample_path_A3_B_ones5_tau0p2_sigma0p1_T100_relTol1e-6/) is saved in PNG and FIG formats. It reuses the saved `relTol = 1e-6` matrix and the same initial state, random seed, path count, and step size, with `nSampleIntervals = 500`.
-
 ## Optional high-precision workflow
 
-`main_vpa.m` additionally requires Symbolic Math Toolbox. It uses 50-digit VPA arithmetic and a different convergence criterion:
+The saved boundary and comparison experiments above use double-precision arithmetic. The additional `main_vpa.m` workflow uses 50-digit VPA arithmetic and the following convergence criterion:
 
 ```matlab
 norm(Wnew - Wold, 'fro') <= 1e-3 * min(1, norm(Wold, 'fro'))
@@ -122,21 +155,29 @@ Set `nWorkers` in `main_vpa.m` to choose the process-pool size; `[]` uses MATLAB
 | File | Role |
 | --- | --- |
 | `riccati.m` | Solves one `(A, B, tau, sigma)` from `model.P`; supports single and multiple inputs. Uses a fixed-point iteration for positive `tau` and a continuous Riccati ODE at zero. |
-| `find_sigma_boundary.m` | Bisects `sigma` for one `(A, B, tau)` and retains both endpoints and solver results. Returns `NaN` estimates if the initial bracket is invalid. |
+| `find_sigma_boundary.m` | Bisects `sigma^2` for one `(A, B, tau)` and retains both endpoints and solver results. Returns `NaN` estimates if the initial bracket is invalid. |
 | `scan_sigma_curves.m` | Runs independent `(A_i, tau)` boundary searches with `parfor` and reports progress. |
 | `plot_sigma_curves.m` | Squares the estimated `sigma` values and plots the boundary curves on a logarithmic vertical axis. |
 | `sample_path.m` | Computes the feedback gain from a supplied `W`, simulates one selected model, and returns its figure and trajectory data. |
 | `riccati_vpa.m` | High-precision Riccati solver with the min criterion. |
 | `integrate_riccati_vpa.m` | High-precision continuous Riccati integration at `tau = 0`. |
-| `find_sigma_boundary_vpa.m` | Boundary search using the VPA solver. |
+| `find_sigma_boundary_vpa.m` | Bisects `sigma^2` using the VPA solver. |
 | `scan_sigma_curves_vpa.m` | Parallel VPA boundary scans with progress reports and per-boundary checkpoints. |
 
 ## Saved outputs
 
-`main.m` saves the boundary experiment under `outputs/<timestamp>_relative_tol_<relTol>/`: `results.mat` and the `B_I5` and `B_ones5` figures in FIG and PNG formats. The MAT file contains the model matrices, sampling grids, solver and search settings, convergence criterion, curves, boundary diagnostics, and scan times.
+| Folder under `outputs/` | Contents and role |
+| --- | --- |
+| [`boundary_sigmaSquared_relTol1e-5/`](outputs/boundary_sigmaSquared_relTol1e-5/) | Main boundary experiment at `relTol = 1e-5`: `results.mat`, `B_I5.fig/png`, and `B_ones5.fig/png`. |
+| [`A1_A5_relTol_comparison/`](outputs/A1_A5_relTol_comparison/) | Four-tolerance comparison for all five matrices: run and plotting scripts, `results.mat`, and `B_I5_A1_A5_relTol_comparison.fig/png` and `B_ones5_A1_A5_relTol_comparison.fig/png`. |
+| [`sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/`](outputs/sample_paths_A3_tau0p2_sigma0p1_T20_relTol1e-6/) | Additional sample-path example: `run_sample_paths.m`, `results.mat`, and `A3_B_I5.fig/png` and `A3_B_ones5.fig/png`. |
 
-`sigmaCurveI` and `sigmaCurve` store **sigma**, with one row per `tau` and one column per `A_i`. The plotting function performs the squaring.
+Both boundary experiments use direct bisection in `sigma^2`. Their MAT files record `searchVariable = 'sigmaSquared'`.
 
-The standalone sample-path script saves `results.mat`, `A3_B_I5.fig/png`, and `A3_B_ones5.fig/png` beside itself. Its MAT file includes both models, all solver and simulation settings, the converged matrices, gains, and stored trajectory data. PNG files use 300 dpi and compact outer margins.
+In the saved main boundary experiment, `sigmaCurveI` and `sigmaCurve` store sigma in `51-by-5` and `31-by-5` arrays, with one row per sampling interval and one column per matrix. Each MAT file also contains the model matrices, sampling grids, solver and search settings, convergence criterion, boundary diagnostics, and scan times.
+
+The standalone sample-path script saves both models, all solver and simulation settings, the converged matrices, gains, and trajectory data. PNG files use 300 dpi.
+
+New `main.m` runs save their boundary data and both FIG/PNG pairs under `outputs/<timestamp>_relative_tol_<relTol>/`.
 
 `main_vpa.m` writes to `outputs/<timestamp>_vpa/`, saving startup settings, per-boundary checkpoints, case results, and both boundary figures. For runs with saved configurations, use those settings when comparing results.

@@ -111,8 +111,8 @@ function [fig, ax, pathResult] = sample_path(model, W, pathCfg)
 
     %% Plot the individual squared norms and their Monte Carlo mean
     fig = figure('Color', 'w', 'Units', 'pixels', ...
-        'Position', [100 100 968 660]);
-    ax = axes('Parent', fig);
+        'Position', [100 100 968 500]);
+    ax = axes('Parent', fig, 'Position', [0.130 0.180 0.775 0.770]);
     sampleHandles = semilogy(ax, tGrid, max(shownNormSquared, realmin), ...
         'Color', [0.75 0.75 0.75], 'LineWidth', 0.8);
     hold(ax, 'on');

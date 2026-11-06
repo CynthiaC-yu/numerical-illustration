@@ -48,10 +48,10 @@ function [sigmaCurve, curveBoundary, curveSeconds] = ...
 
         pointBoundary = find_sigma_boundary(modelJob, jobCfg, searchCfg);
         curveBoundary{jobIndex} = pointBoundary;
-        sigmaCurve(jobIndex) = pointBoundary.sigmaLow;
+        sigmaCurve(jobIndex) = sqrt(pointBoundary.sigmaSquareLow);
 
         send(progressQueue, struct('event', 'finished', 'jobIndex', jobIndex, ...
-            'sigmaSquared', pointBoundary.sigmaLow^2));
+            'sigmaSquared', pointBoundary.sigmaSquareLow));
     end
 
     % Deliver pending messages before the listener goes out of scope.
