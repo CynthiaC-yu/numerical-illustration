@@ -1,6 +1,6 @@
 # Numerical illustration of theoretical results
 
-This repository provides numerical illustrations for *Feedback Stabilization for Sampled Linear Systems with Control-linear Noise*. It plots the observed Riccati convergence boundaries for five diagonal matrices `A_i` and two input cases, `B = I_5` and `B = ones(5,1)`. It also simulates the controlled system using the converged Riccati matrix.
+This repository provides numerical illustrations for *Feedback Stabilization for Sampled Linear Systems with Control-linear Noise*. It plots observed boundaries determined by empirical convergence of the Riccati iteration, using five diagonal matrices `A_i` and two input cases, `B = I_5` and `B = ones(5,1)`. It also simulates the controlled system using the Riccati matrix returned at empirical convergence.
 
 ## Run
 
@@ -49,20 +49,24 @@ The following settings are used by `main.m` and the saved main boundary experime
 | Initial Riccati matrix | `P = zeros(5)` |
 | Sampling intervals | `0:0.2:10` for `B = I_5`; `0:0.2:6` for `B = ones(5,1)` |
 | Matrix integral | 201-point trapezoidal quadrature |
-| Fixed-point tolerance | `relTol = 1e-5` |
+| Empirical convergence tolerance | `relTol = 1e-5` |
 | Maximum sampled-map updates | `maxIter = 2e5` |
 | Frobenius norm limit | `maxWNorm = 1e12` |
 | Boundary search | Bisection in `sigma^2`, initially in `[0,4]` |
 | Search precision | 2% relative bracket width in `sigma^2` |
 | Continuous solver at `tau = 0` | `ode15s`, maximum time `5000`, `RelTol = 1e-9`, `AbsTol = 1e-11` |
 
-For positive `tau`, the convergence criterion is
+For positive `tau`, we declare **empirical convergence** when
 
 ```matlab
 norm(Wnew - Wold, 'fro') <= solverCfg.relTol * norm(Wold, 'fro')
 ```
 
-The accepted `Wnew` is returned. At `tau = 0`, the solver instead checks a scaled Riccati derivative residual. Each boundary candidate starts from `P`.
+The accepted `Wnew` is returned. We declare **empirical divergence** if a candidate reaches the Frobenius norm limit `maxWNorm = 1e12`, or if `maxIter = 2e5` updates are exhausted without empirical convergence.
+
+At `tau = 0`, empirical convergence is assessed using a scaled Riccati derivative residual. Empirical divergence is declared if the norm limit is reached, or if `odeMaxTime = 5000` is reached without empirical convergence. Each boundary candidate starts from `P`.
+
+These labels describe numerical outcomes under the specified stopping thresholds and computational limits. The saved solver statuses are `converged` for empirical convergence and `inconclusive_W_norm_limit`, `inconclusive_max_iter`, or `inconclusive_max_time` for the corresponding computational-limit exits. Other numerical failures retain their specific status values.
 
 The bisection stops when
 
@@ -71,15 +75,15 @@ sigmaSquareHigh - sigmaSquareLow <= ...
     searchCfg.sigmaSquaredRelTol * max(sigmaSquareHigh, 1e-12)
 ```
 
-The search retains a lower endpoint that passes the convergence check and an upper endpoint that fails it. It reports the lower variance endpoint as the observed `sigma_max^2`. The returned fields `sigmaSquareLow` and `sigmaSquareHigh` are both in variance units. Each midpoint solve receives `model.sigma = sqrt(sigmaSquareMid)`.
+The search retains a lower endpoint classified as empirical convergence and an upper endpoint without empirical convergence. It reports the lower variance endpoint as the observed `sigma_max^2`. The returned fields `sigmaSquareLow` and `sigmaSquareHigh` are both in variance units. Each midpoint solve receives `model.sigma = sqrt(sigmaSquareMid)`.
 
-The scan stores `sqrt(sigmaSquareLow)` in `sigmaCurve`; the plotting function squares these values. A failed convergence check is a numerical outcome under the stated tolerances and limits. If the initial endpoints do not form a valid bracket, the search returns `NaN` endpoints.
+The scan stores `sqrt(sigmaSquareLow)` in `sigmaCurve`; the plotting function squares these values. If the initial endpoints do not form a valid bracket, the search returns `NaN` endpoints.
 
 The saved main boundary experiment uses the `epsilon = 1e-5` slice of the same completed rerun as the four-tolerance comparison below.
 
 ## Stopping-tolerance comparison for all five matrices
 
-[`outputs/A1_A5_relTol_comparison/`](outputs/A1_A5_relTol_comparison/) contains both input cases for `A_1` through `A_5` at `epsilon = 1e-3, 1e-4, 1e-5, 1e-6`, where `epsilon` denotes `solverCfg.relTol`. All four settings use the relative update criterion above for positive `tau`. The model, sampling grids, quadrature, search precision, and solver limits are otherwise the same.
+[`outputs/A1_A5_relTol_comparison/`](outputs/A1_A5_relTol_comparison/) contains both input cases for `A_1` through `A_5` at `epsilon = 1e-3, 1e-4, 1e-5, 1e-6`, where `epsilon` denotes `solverCfg.relTol`. All four settings use the relative update criterion above to assess empirical convergence for positive `tau`. The model, sampling grids, quadrature, search precision, and solver limits are otherwise the same.
 
 Each figure has five colors for the matrices and four line styles for the tolerances. The two groups have separate legend boxes. Diamonds, circles, squares, and triangles identify the four tolerances in the order listed above. Their markers are staggered along the common sampling grid to distinguish nearly overlapping curves.
 
@@ -140,7 +144,7 @@ The feedback is `u(k*tau+s) = K(s)*x(k*tau)`. Each path uses one scalar Wiener p
 
 ## Optional high-precision workflow
 
-The saved boundary and comparison experiments above use double-precision arithmetic. The additional `main_vpa.m` workflow uses 50-digit VPA arithmetic and the following convergence criterion:
+The saved boundary and comparison experiments above use double-precision arithmetic. The additional `main_vpa.m` workflow uses 50-digit VPA arithmetic and the following empirical convergence criterion:
 
 ```matlab
 norm(Wnew - Wold, 'fro') <= 1e-3 * min(1, norm(Wold, 'fro'))
@@ -174,9 +178,9 @@ Set `nWorkers` in `main_vpa.m` to choose the process-pool size; `[]` uses MATLAB
 
 Both boundary experiments use direct bisection in `sigma^2`. Their MAT files record `searchVariable = 'sigmaSquared'`.
 
-In the saved main boundary experiment, `sigmaCurveI` and `sigmaCurve` store sigma in `51-by-5` and `31-by-5` arrays, with one row per sampling interval and one column per matrix. Each MAT file also contains the model matrices, sampling grids, solver and search settings, convergence criterion, boundary diagnostics, and scan times.
+In the saved main boundary experiment, `sigmaCurveI` and `sigmaCurve` store sigma in `51-by-5` and `31-by-5` arrays, with one row per sampling interval and one column per matrix. Each MAT file also contains the model matrices, sampling grids, solver and search settings, empirical convergence criterion, boundary diagnostics, and scan times.
 
-The standalone sample-path script saves both models, all solver and simulation settings, the converged matrices, gains, and trajectory data. PNG files use 300 dpi.
+The standalone sample-path script saves both models, all solver and simulation settings, the Riccati matrices returned at empirical convergence, gains, and trajectory data. PNG files use 300 dpi.
 
 New `main.m` runs save their boundary data and both FIG/PNG pairs under `outputs/<timestamp>_relative_tol_<relTol>/`.
 
